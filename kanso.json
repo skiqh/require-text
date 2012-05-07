@@ -1,0 +1,7 @@
+{	"name": "require-text"
+,	"version": "0.0.1"
+,	"description": "var text = require('text/file.txt')"
+,	"dependencies": 
+		{	"attachments": null
+		}
+}
