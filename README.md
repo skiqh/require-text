@@ -10,11 +10,11 @@ Usage
 -----
 
 add the dependency to your `kanso.json` (require-text needs the `modules` package);
-set  
+the `"modules": ["lib"]` part is the important part when you require text later.
 
 ```javascript
 {
-	"modules": ["common"],
+	"modules": ["lib"],
 	...
 	"dependencies": 
 		{	...
@@ -30,11 +30,12 @@ also in `kanso.json`, set the paths to include
 	...
 	"require-text": 
 		{	"paths": <path(s)>
+		,	"strip_extensions": false 
 		}
 
 ```
-where `<paths>` can be a a single file, a single folder, a list of folders where all files in the subfolders get included.
-You can make require-text ignore the file extensions by settings the `strip_extensions` flag to `true`.
+where `<paths>` can be a a single file, a single folder, or a list of folders where all files in the subfolders get included.
+You can make require-text ignore the file extensions by settings the `strip_extensions` flag to `true` (defaults to false).
 
 
 Goodies
@@ -53,7 +54,7 @@ For example, the folowing text will yield two sections, `alpha` and `omega`:
 
 
 ---omega---
-<script data-main="js/main" src="/js/require.js"></script>
-</body>
+	<script data-main="js/main" src="/js/require.js"></script>
+	</body>
 </html>
 ```
