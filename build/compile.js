@@ -57,7 +57,7 @@ module.exports =
 							}
 						}
 												
-						var split_regex = /---([a-z]+)---\r\n([\s\S]*?)(\r\n\r\n|$)/gi
+						var split_regex = /---([a-z]+)---[\r\n]+([\s\S]*?)(\r\n\r\n|\n\n|$)/gi
 						if (txt.search(split_regex) >= 0) {
 							// results += ";\r\nexports['" + name + "'] = ''\r\n"
 							results += txt.replace(split_regex, function( txt, $1, $2) {
