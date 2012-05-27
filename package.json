@@ -1,22 +1,21 @@
-{ "author": "Julian Bee"
-,	"name": "require-text"
-,	"description": "var text = require('text/file.name')"
-,	"version": "0.0.1"
+{	"name": "require-text"
+,	"author": "Julian Bee"
+,	"version": "0.0.2"
+
+,	"description": "var text = require('text/file.name')"
 
 ,	"repository": 
-		{	"type": "git"
+		{	"type": "git"
 		,	"url": "git://github.com/skiqh/require-text.git"
-		}
+		}
 
 ,	"engines": 
 		{	"node": "0.6.x"
-		}
+		}
+
 
 ,	"dependencies": 
-		{	"kanso-utils": "0.1.x"
+		{	"kanso-utils": "0.1.x"
 		,	"kanso-precompiler-base": "~0.0.1"
-		}
-
-,	"devDependencies": {}
-,	"optionalDependencies": {}
+		}
 }

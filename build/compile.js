@@ -2,7 +2,6 @@
 
 var utils = require('kanso-utils/utils');
 var precompiler = require('kanso-precompiler-base');
-	// var fs = require("fs");
 var path = require('path')
 var fs = require('fs')
 
@@ -10,15 +9,18 @@ var fs = require('fs')
 
 module.exports = 
 	{	after: "modules"
-	,	run: function (root, path, settings, doc, callback) {
+	,	run: function (root, dir, settings, doc, callback) {
 			if (!settings["require-text"]) {
 				console.log("No require-text settings found");
 				return callback(null, doc);
 			}
 
 			var results = '';
+			var results_obj = {}
+
 			var _ref = settings["require-text"]
-			doc[_ref.root || 'require-text'] = {}
+			_ref.root = _ref.root || 'text'
+			doc[_ref.root] = {}
 
 
 			if (_ref.paths === true) {
@@ -34,35 +36,45 @@ module.exports =
 				if (err) {
 					callback(err);
 				} else {
-					// console.log(paths);
 					
-			
 					async.forEach(paths, function(p, cb) {
-						var txt = JSON.stringify(fs.readFileSync(p, 'utf-8')) //.replace(/[\r\n]+/gi, '\\\r\n')
-						var name = p.split('/').pop().split('.', 1)[0] // utils.relpath(p, path)
-						// console.log(path, name, p)
-						// doc[_ref.root][name] = txt
-						results += 'exports["' + name + '"] = ' + txt + ';\r\n'
-						cb()
-						// var name = utils.relpath(p.replace(/\.jade$/, '.html'), path)
-						// ,	filename = utils.abspath(p, path)
+						var txt = fs.readFileSync(p, 'utf-8')
+						var name = path.relative('.', p)
+						var exp = ''
+						if (_ref.strip_extensions && (ext = path.extname(name)) !== '' ) {
+							name = name.substring(0, name.length-ext.length) // utils.relpath(p, path)
+						} else {
+							name = name.substring(0, name.length-ext.length) + '/' + ext.substring(1)
+						}
+						var parts = name.split('/')
+						var parts_ = []
+						for (var depth=0; depth<parts.length; depth++) {
+							parts_.push(parts[depth])
+							var part = parts_.join("']['")
+							if (typeof results_obj[part] === 'undefined') {
+								results += "exports['" + part + "'] = {};\r\n"
+								results_obj[part] = {}
+							}
+						}
+												
+						var split_regex = /---([a-z]+)---\r\n([\s\S]*?)(\r\n\r\n|$)/gi
+						if (txt.search(split_regex) >= 0) {
+							// results += ";\r\nexports['" + name + "'] = ''\r\n"
+							results += txt.replace(split_regex, function( txt, $1, $2) {
+								var exp = name + '/' + $1
+								return "exports['" + exp.split('/').join("']['") + "'] = " + JSON.stringify($2) + ";\r\n"
+							})
+						} else {
+							results += "exports['" + name.split('/').join("']['") + "'] = " + JSON.stringify(txt) + ";\r\n"
 
-						// compileJade(path, filename, settings, function (err, css) {
-						// 		if (err) {
-						// 				return cb(err);
-						// 		}
-						// 		doc._attachments[name] = {
-						// 				content_type: 'text/html',
-						// 				data: new Buffer(css).toString('base64')
-						// 		};
-						// 		cb();
-						// });
+						}
+						cb()
 					}
 					,	function (err) {
 							if (err) {
 								callback(err, doc);
 							} else {
-								precompiler.addModule(doc, 'common/'+_ref.root, _ref.root, results);
+								precompiler.addModule(doc, 'common/'+_ref.root, null, results);
 								callback(null, doc)
 							}
 					});
@@ -109,12 +121,10 @@ function collectPaths(paths, root, callback) {
 									});
 								}
 							});
-						} else /* if (/\.jade$/.test(p)) */{
+						} else {
 								results.push(p);
 								cb();
-						} /*else {
-								cb(); // this file isn't a jade file so don't precompile it
-						}*/
+						}
 					}
 				});
 			}
