@@ -10,7 +10,7 @@ Usage
 -----
 
 add the dependency to your `kanso.json` (require-text needs the `modules` package);
-the `"modules": ["lib"]` part is the important part when you require text later.
+the `"modules": ["lib"]` part is important when you require text later.
 
 ```javascript
 {
@@ -78,7 +78,7 @@ Extras
 -------
 
 `require-text` can split up files into smaller parts, making them available as subsections of the JSON-objects.
-For example, the folowing text of file `templates/list.html` will yield `alpha`, `entry` and `omega`:
+For example, the folowing text of a file `templates/list.html` will yield `alpha`, `entry` and `omega`:
 
 ```html
 ---alpha---
@@ -91,7 +91,8 @@ For example, the folowing text of file `templates/list.html` will yield `alpha`,
 
 ---entry---
 			<a href="/{value._id}" class="entry">
-				<span class="icon" style="background-position-x: -{value._icon_position}px"></span><span>{value._id}</span>
+				<span class="icon" style="background-position-x: -{value._icon_position}px"></span>
+				<span>{value._id}</span>
 			</a>
 
 
@@ -102,7 +103,9 @@ For example, the folowing text of file `templates/list.html` will yield `alpha`,
 </html>
 ```
 The syntax is pretty simple, just overwrite the blocks with their name, surrounded with three dashes on each side and delimit the blocks by at least one empty line.
-This is useful in `list` functions, as you can stream the head first, some content from the database and the footer in the end, while having only one coherent file to maintain. Extending the example above (and using [json-template](https://github.com/Gozala/json-template) ), we would write
+This is useful in `list` functions, as you can stream the head first, some content from the database and the footer in the end, while having only one coherent file to maintain. 
+
+Extending on the example above (and using [json-template](https://github.com/Gozala/json-template) ), we would write
 
 ```javascript
 exports.lists = 
