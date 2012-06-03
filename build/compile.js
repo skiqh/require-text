@@ -2,11 +2,24 @@
 
 var utils = require('kanso-utils/utils');
 var precompiler = require('kanso-precompiler-base');
-var path = require('path')
+var pathlib = require('path')
 var fs = require('fs')
 
-
-
+addPropertyRec = function(obj, keys, value, _keys) {
+	if (keys.length === 0) {
+		throw new Error("Cannot set undefined key")
+	}
+	if (keys.length === 1) {
+		if ( typeof obj[keys[0]] !== 'undefined')
+			console.warn("[require-text] WARNING overwriting key '%s'", keys[0])
+		obj[keys[0]] = value
+	} else {
+		var key = keys.shift()
+		obj[key] = obj[key] || {}
+		addPropertyRec( obj[key], keys, value, _keys )
+	}
+	return obj
+}
 module.exports = 
 	{	after: "modules"
 	,	run: function (root, dir, settings, doc, callback) {
@@ -15,69 +28,70 @@ module.exports =
 				return callback(null, doc);
 			}
 
-			var results = '';
+			
 			var results_obj = {}
 
-			var _ref = settings["require-text"]
-			_ref.root = _ref.root || 'text'
-			doc[_ref.root] = {}
+			var conf = settings["require-text"]
+			conf.module = conf.module || 'text'
 
-
-			if (_ref.paths === true) {
-					_ref.paths = ['.']; // "true" means the current directory and everything under it
+			if (conf.paths === true) {
+					conf.paths = ['.']; // "true" means the current directory and everything under it
 			} else {
-					_ref.paths = _ref.paths || [];
+					conf.paths = conf.paths || [];
 			}
-			if (!Array.isArray(_ref.paths)) {
-					_ref.paths = [ _ref.paths ];
+			if (!Array.isArray(conf.paths)) {
+					conf.paths = [ conf.paths ];
 			}
 
-			collectPaths(_ref.paths, root, function(err, paths) {
+			if (conf.split_regex && typeof conf.split_regex === 'string')
+				new RegExp(conf.split_regex, "gi")
+			else
+				conf.split_regex = /---([a-z_]+)---[\r\n]+([\s\S]*?)(\r\n\r\n|\n\n|$)/gi
+
+			collectPaths(conf.paths, root, function(err, paths) {
 				if (err) {
-					callback(err);
+					callback(err, doc);
 				} else {
 					
-					async.forEach(paths, function(p, cb) {
-						var txt = fs.readFileSync(p, 'utf-8')
-						var name = path.relative('.', p)
-						var exp = ''
-						if (_ref.strip_extensions && (ext = path.extname(name)) !== '' ) {
-							name = name.substring(0, name.length-ext.length) // utils.relpath(p, path)
+					var add_modules = {};
+					paths.forEach( function(path) {
+						var add_module = {}
+
+						var txt = fs.readFileSync(path, 'utf-8')
+						var name = pathlib.relative('.', path)
+						var ext = pathlib.extname(name)
+
+						if (conf.strip_extensions && ext !== '' ) {
+							name = name.substring(0, name.length-ext.length)
 						} else {
 							name = name.substring(0, name.length-ext.length) + '/' + ext.substring(1)
 						}
-						var parts = name.split('/')
-						var parts_ = []
-						for (var depth=0; depth<parts.length; depth++) {
-							parts_.push(parts[depth])
-							var part = parts_.join("']['")
-							if (typeof results_obj[part] === 'undefined') {
-								results += "exports['" + part + "'] = {};\r\n"
-								results_obj[part] = {}
-							}
-						}
-												
-						var split_regex = /---([a-z]+)---[\r\n]+([\s\S]*?)(\r\n\r\n|\n\n|$)/gi
-						if (txt.search(split_regex) >= 0) {
-							// results += ";\r\nexports['" + name + "'] = ''\r\n"
-							results += txt.replace(split_regex, function( txt, $1, $2) {
-								var exp = name + '/' + $1
-								return "exports['" + exp.split('/').join("']['") + "'] = " + JSON.stringify($2) + ";\r\n"
-							})
-						} else {
-							results += "exports['" + name.split('/').join("']['") + "'] = " + JSON.stringify(txt) + ";\r\n"
 
-						}
-						cb()
-					}
-					,	function (err) {
-							if (err) {
-								callback(err, doc);
-							} else {
-								precompiler.addModule(doc, 'common/'+_ref.root, null, results);
-								callback(null, doc)
+						var parts = name.split('/')
+						var module_name = parts.shift()
+						
+						var res
+						if (txt.search(conf.split_regex) >= 0) {
+							res = {}
+							while( (match=conf.split_regex.exec(txt)) != null ) {
+								res[match[1]] = match[2]
 							}
-					});
+						} else {
+							res = txt
+						}
+						if (parts.length > 0) {
+							add_modules[module_name] = addPropertyRec(add_modules[module_name] || {}, parts, res)
+						} else {
+							if ( typeof add_modules[module_name] !== 'undefined')
+								console.warn("[require-text] WARNING overwriting key '%s'", module_name)
+
+							add_modules[module_name] = res
+						}
+					})
+					for (var module_name in add_modules) {
+						precompiler.addModule(doc, conf.module + '/' + module_name, null, "module.exports = " + JSON.stringify(add_modules[module_name]))
+					}
+					callback(null, doc)
 				}
 			})
 		}
@@ -97,10 +111,10 @@ function collectPaths(paths, root, callback) {
 
 		async.forEach(paths, function(p, cb) {
 			if (/^\.[^.]|~$/.test(p)) { // ignore hidden files
-				console.log("hidden file", p);
+				console.log("ignoring hidden file '%s'", p);
 				cb();
 			} else {
-				p = path.resolve(root, p);
+				p = pathlib.resolve(root, p);
 				fs.stat(p, function(err, stats) {
 					if (err) {
 						if (err.code === 'ENOENT') {
@@ -109,7 +123,7 @@ function collectPaths(paths, root, callback) {
 							cb(err);
 						}
 					} else {
-						p = path.resolve(root, p);
+						p = pathlib.resolve(root, p);
 						if (stats.isDirectory()) {
 							fs.readdir(p, function(err, files) {
 								if (err) {

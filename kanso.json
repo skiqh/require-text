@@ -1,8 +1,9 @@
 {	"name": "require-text"
 ,	"version": "0.0.2"
-,	"description": "var text = require('lib/text/file/section')"
+,	"description": "var text = require('lib/text').file.section"
 ,	"dependencies": 
 		{	"attachments": null
+		,	"modules": null
 		}
 ,	"preprocessors": 
 		{	"compile": "build/compile"
